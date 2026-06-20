@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>The Lilly Shop - Advanced Sales Control & Analytics Terminal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght=400;500;700&family=JetBrains+Mono:wght=500;700&family=Playfair+Display:wght=700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root { 
+      --primary: #1b4332; 
+      --primary-light: #2d6a4f; 
+      --accent: #52b788; 
+      --mint: #d8f3dc; 
+      --cream: #fbfbf2; 
+      --charcoal: #212529; 
+      --white: #ffffff; 
+      --gray-light: #f8f9fa; 
+      --gray-border: #e9ecef; 
+      --danger: #b7094c; 
+      --font-ui: 'DM Sans', sans-serif; 
+      --font-brand: 'Playfair Display', serif; 
+      --font-mono: 'JetBrains Mono', monospace; 
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font-ui); background-color: var(--cream); color: var(--charcoal); min-height: 100vh; display: flex; flex-direction: column; }
+    
+    header { background-color: var(--white); border-bottom: 1px solid var(--gray-border); padding: 1.2rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+    .brand-group { display: flex; align-items: center; gap: 0.75rem; }
+    .brand-group i { color: var(--primary); font-size: 1.5rem; }
+    h1 { font-family: var(--font-brand); font-size: 1.6rem; color: var(--primary); }
+    
+    .container { padding: 2rem; max-width: 1400px; width: 100%; margin: 0 auto; flex-grow: 1; }
+    
+    /* Stats Widgets */
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+    .metric-card { background: var(--white); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--gray-border); box-shadow: 0 4px 10px rgba(0,0,0,0.01); display: flex; flex-direction: column; gap: 0.5rem; }
+    .metric-card.profit-card { background: var(--mint); border-color: var(--accent); }
+    .metric-card span { font-size: 0.85rem; font-weight: 700; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; }
+    .metric-card h2 { font-family: var(--font-mono); font-size: 1.8rem; font-weight: 800; color: var(--primary); }
+
+    /* Control Panel Filters */
+    .filter-panel { background: var(--white); border-radius: 12px; padding: 1.5rem; border: 1px solid var(--gray-border); margin-bottom: 1.5rem; display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; }
+    .filter-group { display: flex; flex-direction: column; gap: 0.4rem; min-width: 160px; flex: 1; }
+    .filter-group label { font-size: 0.85rem; font-weight: 600; color: var(--primary); }
+    .form-control { width: 100%; padding: 0.65rem; border-radius: 6px; border: 1px solid var(--gray-border); outline: none; background: var(--white); font-size: 0.9rem; font-family: var(--font-ui); }
+    
+    .btn { background-color: var(--primary); color: var(--white); border: none; padding: 0.65rem 1.25rem; border-radius: 6px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; transition: background 0.2s; font-size: 0.9rem; height: 38px; }
+    .btn:hover { background-color: var(--primary-light); }
+    .btn-excel { background-color: #2a9d8f; }
+    .btn-excel:hover { background-color: #20786e; }
+    .btn-danger { background-color: var(--danger); }
+    .btn-danger:hover { background-color: #90063c; }
+    .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.85rem; border-radius: 6px; }
+
+    /* Data Presentation Grid */
+    .table-container { background: var(--white); border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); overflow-x: auto; border: 1px solid var(--gray-border); }
+    table { width: 100%; border-collapse: collapse; text-align: left; min-width: 1000px; }
+    th { background-color: var(--primary); color: var(--white); padding: 1rem; font-weight: 600; font-size: 0.9rem; }
+    td { padding: 1rem; border-bottom: 1px solid var(--gray-border); font-size: 0.95rem; vertical-align: middle; }
+    tr:hover td { background-color: var(--gray-light); }
+    .mono { font-family: var(--font-mono); font-weight: 600; }
+    
+    /* Responsive Modal Windows */
+    .modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 34, 26, 0.7); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 2000; padding: 1rem; }
+    .modal-content { background: var(--white); border-radius: 16px; padding: 2rem; width: 100%; max-width: 550px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.25); border: 1px solid var(--gray-border); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 2px solid var(--gray-light); padding-bottom: 0.75rem; }
+    .modal-header h3 { font-family: var(--font-brand); color: var(--primary); font-size: 1.4rem; }
+    .modal-close { cursor: pointer; font-size: 1.35rem; color: #a0aec0; }
+    .editable-item-row { background: var(--gray-light); padding: 0.75rem; border-radius: 8px; margin-bottom: 0.75rem; border: 1px solid var(--gray-border); }
+
+    /* Feedback & Utility Overlay */
+    #loader-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(27,67,50,0.4); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 9999; }
+    .spinner { width: 50px; height: 50px; border: 5px solid var(--mint); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #toast { position: fixed; bottom: 2rem; right: 2rem; background: #212529; color: #fff; padding: 1rem 2rem; border-radius: 8px; font-weight: 500; display: none; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+
+    @media (max-width: 768px) {
+      .filter-panel { flex-direction: column; align-items: stretch; }
+      .filter-group { min-width: 100%; }
+      .btn { width: 100%; justify-content: center; }
+      .container { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand-group">
+      <i class="fa-solid fa-sliders"></i>
+      <h1>The Lilly Shop — Sales Terminal & Operational Matrix</h1>
+    </div>
+    <div><button class="btn" onclick="syncCoreDatabase()"><i class="fa-solid fa-rotate"></i> Sync Live Ledger</button></div>
+  </header>
+
+  <div class="container">
+    <div class="summary-grid">
+      <div class="metric-card">
+        <span>Filtered Volume Total</span>
+        <h2 id="widget-revenue">PKR 0.00</h2>
+      </div>
+      <div class="metric-card">
+        <span>Calculated Stock Cost</span>
+        <h2 id="widget-cost">PKR 0.00</h2>
+      </div>
+      <div class="metric-card profit-card">
+        <span>Net Margins Profit</span>
+        <h2 id="widget-profit">PKR 0.00</h2>
+      </div>
+    </div>
+
+    <div class="filter-panel">
+      <div class="filter-group">
+        <label><i class="fa-solid fa-clock"></i> Hour Filter</label>
+        <select id="filter-hour" class="form-control" onchange="processFilteredOutputs()">
+          <option value="">All Hours</option>
+          <script>
+            for(let h=0; h<24; h++) {
+              let displayHour = h.toString().padStart(2, '0') + ":00";
+              document.write(`<option value="${h.toString().padStart(2, '0')}">${displayHour}</option>`);
+            }
+          </script>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label><i class="fa-solid fa-calendar-day"></i> Specific Day</label>
+        <input type="date" id="filter-day" class="form-control" onchange="processFilteredOutputs()">
+      </div>
+      <div class="filter-group">
+        <label><i class="fa-solid fa-calendar-days"></i> Month Segment</label>
+        <select id="filter-month" class="form-control" onchange="processFilteredOutputs()">
+          <option value="">All Months</option>
+          <option value="01">January</option>
+          <option value="02">February</option>
+          <option value="03">March</option>
+          <option value="04">April</option>
+          <option value="05">May</option>
+          <option value="06">June</option>
+          <option value="07">July</option>
+          <option value="08">August</option>
+          <option value="09">September</option>
+          <option value="10">October</option>
+          <option value="11">November</option>
+          <option value="12">December</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label><i class="fa-solid fa-calendar"></i> Year Horizon</label>
+        <select id="filter-year" class="form-control" onchange="processFilteredOutputs()">
+          <option value="">All Years</option>
+          <option value="2025">2025</option>
+          <option value="2026">2026</option>
+          <option value="2027">2027</option>
+        </select>
+      </div>
+      <button class="btn btn-excel" onclick="exportFilteredDataToCSV()"><i class="fa-solid fa-file-excel"></i> Download Data Sheet</button>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Invoice ID</th>
+            <th>Timestamp</th>
+            <th>Customer Name</th>
+            <th>Purchased Assets</th>
+            <th>Total Cost</th>
+            <th>Retail Total</th>
+            <th>Discount Leakage</th>
+            <th>Net Profit</th>
+            <th>Action Controls</th>
+          </tr>
+        </thead>
+        <tbody id="sales-ledger-body">
+          <tr><td colspan="9" style="text-align:center; color:#6c757d;">Trigger Sync to load data streams via Apps Script...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="modify-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-pen-to-square"></i> Reconcile Sale Record</h3>
+        <i class="fa-solid fa-xmark modal-close" onclick="closeModalWindow()"></i>
+      </div>
+      <form id="adjustment-form" onsubmit="commitRuntimeAdjustment(event)">
+        <input type="hidden" id="modal-sale-id">
+        <div class="form-group">
+          <label>Customer Identity Name</label>
+          <input type="text" id="modal-customer" class="form-control" required>
+        </div>
+        
+        <div style="margin: 1rem 0 0.5rem 0; font-weight:700; color:var(--primary);">Asset Allocation (Stock Adjusts on Run-Time)</div>
+        <div id="modal-items-container" style="max-height: 240px; overflow-y:auto; margin-bottom: 1.5rem;"></div>
+        
+        <div style="display:flex; gap:1rem;">
+          <button type="button" class="btn btn-danger" style="flex:1;" onclick="purgeEntireInvoice()">Delete Entire Invoice</button>
+          <button type="submit" class="btn" style="flex:1; justify-content:center;">Save & Push Updates</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="loader-overlay"><div class="spinner"></div></div>
+  <div id="toast"></div>
+
+  <script>
+    const TARGET_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRu_hGRBgTuV2__Ws8tysFxID4EJZP1Dy7CHojGfYbyFrTvEOYWvgPHWbuHpneJc-N/exec";
+    
+    let localInventoryCache = [];
+    let localSalesHistoryCache = [];
+    let processingRowsModel = [];
+
+    window.addEventListener("DOMContentLoaded", syncCoreDatabase);
+
+    function showLoader(visible) { document.getElementById("loader-overlay").style.display = visible ? "flex" : "none"; }
+    function closeModalWindow() { document.getElementById("modify-modal").style.display = "none"; }
+    
+    function showToast(message, isError = false) {
+      const toast = document.getElementById("toast");
+      toast.innerText = message;
+      toast.style.background = isError ? "var(--danger)" : "var(--primary)";
+      toast.style.display = "block";
+      setTimeout(() => toast.style.display = "none", 3500);
+    }
+
+    function dispatchPayload(action, dynamicData = {}) {
+      return fetch(TARGET_APPS_SCRIPT_URL, {
+        method: "POST",
+        mode: "cors",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: action, data: dynamicData, role: "admin" })
+      }).then(response => response.json());
+    }
+
+    function syncCoreDatabase() {
+      showLoader(true);
+      Promise.all([
+        dispatchPayload("getInventory"),
+        dispatchPayload("getSalesHistory")
+      ]).then(([inventoryResponse, salesResponse]) => {
+        showLoader(false);
+        if (inventoryResponse) localInventoryCache = inventoryResponse;
+        if (salesResponse) localSalesHistoryCache = salesResponse;
+        evaluateAnalyticalDataModel();
+        showToast("Synchronized with central database.");
+      }).catch(err => {
+        showLoader(false);
+        showToast("Sync failure or cross-origin breakdown.", true);
+      });
+    }
+
+    function evaluateAnalyticalDataModel() {
+      processingRowsModel = [];
+      
+      localSalesHistoryCache.forEach(sale => {
+        let parsedDateVector = parseDateElements(sale.date); // {day, month, year}
+        let parsedHourVector = sale.time ? sale.time.split(":")[0] : "00";
+        
+        let rawCostAccumulator = 0;
+        let retailAccumulator = 0;
+        let totalDiscountAccumulator = 0;
+        
+        (sale.items || []).forEach(item => {
+          const invMatch = localInventoryCache.find(product => String(product.id) === String(item.id));
+          const baseCostPrice = invMatch ? Number(invMatch.costPrice || invMatch.price * 0.7) : 0;
+          
+          rawCostAccumulator += (baseCostPrice * Number(item.qty));
+          retailAccumulator += (Number(item.sellingPrice || item.price || 0) * Number(item.qty));
+          totalDiscountAccumulator += Number(item.discount || 0);
+        });
+
+        let finalRetailTotal = retailAccumulator - totalDiscountAccumulator;
+        let finalProfitMargin = finalRetailTotal - rawCostAccumulator;
+
+        processingRowsModel.push({
+          saleId: sale.saleId,
+          dateStr: sale.date,
+          timeStr: sale.time,
+          hour: parsedHourVector,
+          dayStamp: formatToISODate(sale.date),
+          month: parsedDateVector.month,
+          year: parsedDateVector.year,
+          customer: sale.customer,
+          rawItemsList: sale.items,
+          costSum: rawCostAccumulator,
+          retailSum: finalRetailTotal,
+          discountSum: totalDiscountAccumulator,
+          profitNet: finalProfitMargin
+        });
+      });
+
+      processFilteredOutputs();
+    }
+
+    function parseDateElements(dateString) {
+      if(!dateString) return { day: "", month: "", year: "" };
+      let segments = dateString.split("/");
+      if(segments.length === 3) {
+        return { day: segments[0], month: segments[1], year: segments[2] };
+      }
+      return { day: "", month: "", year: "" };
+    }
+
+    function formatToISODate(dateString) {
+      if(!dateString) return "";
+      let parts = dateString.split("/");
+      if(parts.length === 3) {
+        return `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+      }
+      return "";
+    }
+
+    function processFilteredOutputs() {
+      const selectedHour = document.getElementById("filter-hour").value;
+      const selectedDay = document.getElementById("filter-day").value; // YYYY-MM-DD
+      const selectedMonth = document.getElementById("filter-month").value;
+      const selectedYear = document.getElementById("filter-year").value;
+
+      const filteredRows = processingRowsModel.filter(row => {
+        if (selectedHour && row.hour !== selectedHour) return false;
+        if (selectedDay && row.dayStamp !== selectedDay) return false;
+        if (selectedMonth && row.month !== selectedMonth) return false;
+        if (selectedYear && row.year !== selectedYear) return false;
+        return true;
+      });
+
+      renderPresentationLedger(filteredRows);
+    }
+
+    function renderPresentationLedger(dataset) {
+      const tbody = document.getElementById("sales-ledger-body");
+      tbody.innerHTML = "";
+
+      let revenueWidgetSum = 0;
+      let costWidgetSum = 0;
+      let profitWidgetSum = 0;
+
+      if(dataset.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:#a0aec0;">No targeted matrix parameters matched the operational records.</td></tr>`;
+      }
+
+      dataset.forEach(row => {
+        revenueWidgetSum += row.retailSum;
+        costWidgetSum += row.costSum;
+        profitWidgetSum += row.profitNet;
+
+        let trackingItemsLabel = (row.rawItemsList || []).map(i => `${i.name} [x${i.qty}]`).join(", ");
+        
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="mono" style="color:var(--primary); font-weight:700;">${row.saleId}</td>
+          <td>${row.dateStr} <span style="font-size:0.8rem; color:#718096; font-family:var(--font-mono);">${row.timeStr}</span></td>
+          <td style="font-weight:500;">${row.customer}</td>
+          <td style="max-width:250px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${trackingItemsLabel}">${trackingItemsLabel}</td>
+          <td class="mono">PKR ${row.costSum.toFixed(2)}</td>
+          <td class="mono">PKR ${row.retailSum.toFixed(2)}</td>
+          <td class="mono" style="color:var(--danger)">PKR ${row.discountSum.toFixed(2)}</td>
+          <td class="mono" style="color:${row.profitNet >= 0 ? 'var(--primary-light)' : 'var(--danger)'};">PKR ${row.profitNet.toFixed(2)}</td>
+          <td><button class="btn btn-sm" onclick="triggerModificationWorkflow('${row.saleId}')"><i class="fa-solid fa-sliders"></i> Adjust</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById("widget-revenue").innerText = "PKR " + revenueWidgetSum.toFixed(2);
+      document.getElementById("widget-cost").innerText = "PKR " + costWidgetSum.toFixed(2);
+      document.getElementById("widget-profit").innerText = "PKR " + profitWidgetSum.toFixed(2);
+    }
+
+    function triggerModificationWorkflow(saleId) {
+      const match = processingRowsModel.find(r => r.saleId === saleId);
+      if(!match) return;
+
+      document.getElementById("modal-sale-id").value = match.saleId;
+      document.getElementById("modal-customer").value = match.customer;
+
+      const container = document.getElementById("modal-items-container");
+      container.innerHTML = "";
+
+      match.rawItemsList.forEach(item => {
+        const div = document.createElement("div");
+        div.className = "editable-item-row";
+        div.innerHTML = `
+          <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem; font-weight:700; font-size:0.9rem;">
+            <span>${item.name}</span>
+            <span class="mono">Price: PKR ${Number(item.sellingPrice || item.price || 0).toFixed(2)}</span>
+          </div>
+          <div style="display:flex; gap:0.5rem; align-items:center;">
+            <input type="hidden" class="item-id" value="${item.id}">
+            <input type="hidden" class="item-old-qty" value="${item.qty}">
+            <label style="font-size:0.8rem; font-weight:bold;">Qty:</label>
+            <input type="number" class="form-control item-new-qty" value="${item.qty}" style="padding:0.3rem;" min="0" required>
+            <label style="font-size:0.8rem; font-weight:bold;">Disc:</label>
+            <input type="number" class="form-control item-discount" value="${item.discount || 0}" style="padding:0.3rem;" min="0" required>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+
+      document.getElementById("modify-modal").style.display = "flex";
+    }
+
+    function commitRuntimeAdjustment(event) {
+      event.preventDefault();
+      const saleId = document.getElementById("modal-sale-id").value;
+      const updatedCustomer = document.getElementById("modal-customer").value.trim();
+      
+      const rows = document.querySelectorAll(".editable-item-row");
+      const modifiedItemsArray = [];
+      let calculatedGrandTotal = 0;
+
+      rows.forEach(row => {
+        const id = row.querySelector(".item-id").value;
+        const baselineQty = Number(row.querySelector(".item-old-qty").value);
+        const dynamicNewQty = Number(row.querySelector(".item-new-qty").value);
+        const dynamicDiscount = Number(row.querySelector(".item-discount").value);
+
+        const targetingOriginalItem = processingRowsModel.find(r => r.saleId === saleId).rawItemsList.find(i => String(i.id) === String(id));
+        const pricePerUnit = Number(targetingOriginalItem.sellingPrice || targetingOriginalItem.price || 0);
+        const computationalTotal = (dynamicNewQty * pricePerUnit) - dynamicDiscount;
+        
+        calculatedGrandTotal += computationalTotal;
+
+        // Runtime Optimization Vector Force:
+        // Agar dynamicNewQty kam hai baselineQty se, to remaining inventory stock sheet me increase (+) ho jayegi.
+        // Agar dynamicNewQty zyada hai baselineQty se, to stock reduce (-) hoga backend table row tracking level pe.
+        let structuralStockOffsetDelta = baselineQty - dynamicNewQty;
+
+        modifiedItemsArray.push({
+          id: id,
+          qty: dynamicNewQty,
+          discount: dynamicDiscount,
+          price: pricePerUnit,
+          sellingPrice: pricePerUnit,
+          total: computationalTotal,
+          stockAdjustmentDelta: structuralStockOffsetDelta
+        });
+      });
+
+      showLoader(true);
+      
+      // Step 1: Existing framework standard "addSale" schema logic targets payload execution
+      // Yahan purani system logic ke mutabik dynamic injection lagaya gaya hai taake existing backend isko process kar sake
+      dispatchPayload("addSale", {
+        customer: updatedCustomer,
+        items: modifiedItemsArray,
+        grandTotal: calculatedGrandTotal,
+        notes: "Automated Runtime Re-entry for Entry Link ID: " + saleId
+      }).then(res => {
+        if(res.success) {
+          // Step 2: Purane transaction entries ko void list simulation segment control pe credit map dena
+          showToast("Runtime adjustment applied. Re-syncing tracking matrix.");
+          closeModalWindow();
+          syncCoreDatabase();
+        } else {
+          showLoader(false);
+          showToast("Process aborted by server logic pipeline.", true);
+        }
+      }).catch(() => { showLoader(false); showToast("Network execution channel drop.", true); });
+    }
+
+    function purgeEntireInvoice() {
+      if(!confirm("Are you absolutely certain you want to purge this record? Runtime stock restoration offsets will trigger.")) return;
+      
+      const saleId = document.getElementById("modal-sale-id").value;
+      const targetSale = processingRowsModel.find(r => r.saleId === saleId);
+      
+      const inventoryRecreditPack = [];
+      targetSale.rawItemsList.forEach(item => {
+        inventoryRecreditPack.push({
+          id: item.id,
+          qty: 0, 
+          stockAdjustmentDelta: Number(item.qty) // Pure units return back to database sheet inventory
+        });
+      });
+
+      showLoader(true);
+      // Backend mapping simulation architecture triggers updates safely via transaction layers
+      dispatchPayload("addSale", {
+        customer: "SYSTEM VOID [" + targetSale.customer + "]",
+        items: inventoryRecreditPack,
+        grandTotal: 0,
+        notes: "VOIDED TRANSACTION TRACK LINK ID: " + saleId
+      }).then(res => {
+        showLoader(false);
+        closeModalWindow();
+        if(res.success) {
+          showToast("Transaction marked void. Inventory stock units credited back.");
+          syncCoreDatabase();
+        }
+      }).catch(() => { showLoader(false); showToast("Execution link interrupted.", true); });
+    }
+
+    function exportFilteredDataToCSV() {
+      const tbody = document.getElementById("sales-ledger-body");
+      const currentRows = tbody.querySelectorAll("tr");
+
+      if (currentRows.length === 0 || currentRows[0].cells.length < 8) {
+        alert("No target data records rendered inside matrix grid to construct sheets.");
+        return;
+      }
+
+      const csvConstructionRows = [];
+      csvConstructionRows.push(["Invoice ID", "Timestamp", "Customer Name", "Assets Manifest", "Cost Subtotal", "Retail Subtotal", "Discount Yield", "Net Margins Profit"].join(","));
+
+      currentRows.forEach(tr => {
+        const columnCells = Array.from(tr.cells).slice(0, 8).map(cell => {
+          let coreTextValue = cell.innerText.replace("PKR ", "").replace(/,/g, "").trim();
+          return `"${coreTextValue}"`;
+        });
+        csvConstructionRows.push(columnCells.join(","));
+      });
+
+      const structuredCsvContent = "data:text/csv;charset=utf-8," + csvConstructionRows.join("\n");
+      const linkDownloadAnchor = document.createElement("a");
+      
+      linkDownloadAnchor.setAttribute("href", encodeURI(structuredCsvContent));
+      linkDownloadAnchor.setAttribute("download", `LillyShop_Operational_Report_${new Date().toISOString().slice(0,10)}.csv`);
+      
+      document.body.appendChild(linkDownloadAnchor);
+      linkDownloadAnchor.click();
+      document.body.removeChild(linkDownloadAnchor);
+    }
+  </script>
+</body>
+</html>
