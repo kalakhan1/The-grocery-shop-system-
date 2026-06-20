@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>The Lilly Shop - Sales Counter Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght=400;500;700&family=JetBrains+Mono:wght=500;700&family=Noto+Nastaliq+Urdu:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root { --primary: #1b4332; --primary-light: #2d6a4f; --accent: #52b788; --mint: #d8f3dc; --cream: #fbfbf2; --charcoal: #212529; --white: #ffffff; --gray-light: #f8f9fa; --gray-border: #e9ecef; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background-color: var(--cream); color: var(--charcoal); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+    body.rtl { direction: rtl; font-family: 'Noto Nastaliq Urdu', sans-serif; }
+    header { background-color: var(--primary); color: var(--white); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+    .main-grid { display: grid; grid-template-columns: 1fr 420px; gap: 1.5rem; padding: 1.5rem; flex-grow: 1; overflow: hidden; height: calc(100vh - 70px); }
+    .panel { background: var(--white); border-radius: 12px; border: 1px solid var(--gray-border); padding: 1.5rem; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
+    .table-container { flex-grow: 1; overflow-y: auto; margin-top: 1rem; border: 1px solid var(--gray-border); border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: var(--primary); color: var(--white); padding: 0.85rem; text-align: left; font-weight: 600; }
+    body.rtl th { text-align: right; }
+    td { padding: 0.85rem; border-bottom: 1px solid var(--gray-border); font-size: 0.95rem; vertical-align: middle; }
+    .form-control { width: 100%; padding: 0.75rem; border: 1px solid var(--gray-border); border-radius: 8px; outline: none; margin-bottom: 1rem; font-size: 1rem; font-family: inherit; }
+    .btn { background: var(--primary); color: var(--white); border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; justify-content: center; transition: background 0.2s; }
+    .btn:hover { background: var(--primary-light); }
+    .btn-success { background: var(--primary-light); width: 100%; font-size: 1.2rem; padding: 1rem; border-radius: 10px; }
+    .summary-row { display: flex; justify-content: space-between; font-weight: bold; font-size: 1.25rem; margin: 0.6rem 0; padding-top: 0.6rem; border-top: 1px dashed var(--gray-border); }
+    .lang-btn { background: var(--mint); color: var(--primary); border: 1px solid var(--accent); padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    .search-dropdown { position: absolute; background: var(--white); width: calc(100% - 3rem); max-height: 250px; overflow-y: auto; border: 1px solid var(--gray-border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 999; display: none; }
+    .dropdown-item { padding: 0.75rem 1rem; cursor: pointer; font-size: 0.95rem; border-bottom: 1px solid var(--gray-light); }
+    .dropdown-item:hover { background: var(--gray-light); color: var(--primary); font-weight: 500; }
+    
+    /* Dedicated Thermal Print Configuration Engine Media Specifications */
+    #receipt-print-area { display: none; }
+    @media print {
+      body * { display: none !important; }
+      #receipt-print-area { display: block !important; width: 76mm; background: #ffffff; color: #000000; font-family: 'JetBrains Mono', monospace; padding: 4mm; font-size: 11px; line-height: 1.4; }
+      .print-center { text-align: center; margin-bottom: 4mm; }
+      .print-center h2 { font-size: 16px; font-weight: bold; margin-bottom: 1mm; }
+      .print-table { width: 100%; border-collapse: collapse; margin-top: 3mm; }
+      .print-table th { background: none !important; color: #000000 !important; border-bottom: 1px dashed #000000; padding: 3px 0; font-size: 10px; text-align: left; }
+      .print-table td { padding: 4px 0; border: none; font-size: 10px; text-align: left; }
+      .dashed-line { border-top: 1px dashed #000000; margin: 3mm 0; }
+      .footer-branding { text-align: center; font-size: 8px; font-weight: bold; margin-top: 6mm; border-top: 1px dashed #000000; padding-top: 3mm; letter-spacing: 0.5px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h2 id="counter-title">The Lilly Shop - Sales Counter</h2>
+    <button class="lang-btn" onclick="toggleLanguage()">English / اردو</button>
+  </header>
+
+  <div class="main-grid">
+    <div class="panel" style="position: relative;">
+      <div style="display:grid; grid-template-columns: 1fr 240px; gap:1rem;">
+        <input type="text" class="form-control" id="barcode-scan-input" placeholder="Scan Barcode / Input SKU Serial Code..." autofocus onkeydown="handleBarcodeHardwareScan(event)">
+        <input type="text" class="form-control" id="manual-name-search" placeholder="Search product by name..." oninput="searchByNameMetrics()">
+      </div>
+      <div class="search-dropdown" id="dropdown-results"></div>
+      
+      <div class="table-container">
+        <table>
+          <thead><tr><th data-tr="item">Item Description</th><th data-tr="price">Price</th><th data-tr="qty">Qty</th><th data-tr="disc">Discount</th><th data-tr="total">Total</th></tr></thead>
+          <tbody id="cart-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    
+    <div class="panel" style="justify-content: space-between;">
+      <div>
+        <h3 data-tr="cust_profile" style="color:var(--primary); border-bottom:2px solid var(--gray-light); padding-bottom:0.5rem;">Customer Profile</h3><br>
+        <input type="text" class="form-control" id="cart-customer" value="Walk-In General Customer">
+        <div style="margin-top:2rem;">
+          <div class="summary-row"><span>Gross Total:</span><span id="sum-gross">0.00</span></div>
+          <div class="summary-row"><span>Total Deductions:</span><span id="sum-disc">0.00</span></div>
+          <div class="summary-row" style="font-size:1.6rem; color:var(--primary); padding-top:1rem; border-top:2px solid var(--primary);"><span>Net Payable:</span><span id="sum-net">0.00</span></div>
+        </div>
+      </div>
+      <button class="btn btn-success" onclick="processCheckoutInvoice()"><i class="fa-solid fa-cash-register"></i> Transact & Print Bill Machine</button>
+    </div>
+  </div>
+
+  <div id="receipt-print-area">
+    <div class="print-center">
+      <h2 id="pr-shop-name">The Lilly Shop</h2>
+      <p id="pr-shop-location">Operations Branch</p>
+      <p id="pr-shop-phone">Helpline Matrix</p>
+      <p>================================</p>
+      <p id="pr-invoice-id">Invoice ID: INV-XXXXXXXX</p>
+      <p id="pr-datetime">Date: --/--/---- --:--</p>
+    </div>
+    <table class="print-table">
+      <thead><tr><th>Asset Item</th><th>Qty</th><th>Disc</th><th>Total</th></tr></thead>
+      <tbody id="pr-tbody"></tbody>
+    </table>
+    <div class="dashed-line"></div>
+    <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:bold;">
+      <span>Net Payable Cost:</span>
+      <strong id="pr-net-payable">0.00</strong>
+    </div>
+    <div class="footer-branding">
+      THANK YOU FOR TRADING WITH US<br>
+      SYSTEM SIGNATURE FOOTER PROUDLY POWERED BY:<br>
+      HNK & SHEEKAN TECH AND STUDIO
+    </div>
+  </div>
+
+  <script>
+    // REPLACE THIS LINK WITH YOUR GENERATED WEB APP DEPLOYMENT URL
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw0CxY0ogBY6hg3fvLHwE1LbeXioNxTz3-itjNJ4u16sTA8Yh7pv5tMPk0eGT0Z0UAY/exec";
+    let activeInventory = [], currentCart = [], activeConfig = {}, currentLang = 'en';
+
+    const trs = {
+      en: { item: "Item Description", price: "Price", qty: "Qty", disc: "Discount", total: "Total", cust_profile: "Customer Profile" },
+      ur: { item: "آئٹم کی تفصیل", price: "قیمت", qty: "مقدار", disc: "ڈسکاؤنٹ", total: "ٹوٹل لاگت", cust_profile: "صارف کی پروفائل" }
+    };
+
+    function toggleLanguage() {
+      currentLang = currentLang === 'en' ? 'ur' : 'en';
+      if(currentLang === 'ur') { document.body.classList.add('rtl'); } else { document.body.classList.remove('rtl'); }
+      document.querySelectorAll("[data-tr]").forEach(el => {
+        const key = el.getAttribute("data-tr");
+        if(trs[currentLang][key]) el.innerHTML = trs[currentLang][key];
+      });
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getInventory" }) }).then(r=>r.json()).then(d => { activeInventory = d; });
+      fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getSettings" }) }).then(r=>r.json()).then(s => { 
+        activeConfig = s;
+        document.getElementById("counter-title").innerText = s.shop_name + " - Counter Control Window";
+      });
+      
+      // Hardware Scanner Focus Lock Mechanism. Focus back to target unless typing customer profile manually.
+      document.body.addEventListener("click", () => {
+        if(document.activeElement.id !== 'manual-name-search' && document.activeElement.id !== 'cart-customer') {
+          document.getElementById("barcode-scan-input").focus();
+        }
+      });
+    });
+
+    function handleBarcodeHardwareScan(e) {
+      if(e.key === "Enter") {
+        const val = e.target.value.trim();
+        if(!val) return;
+        const matchedItem = activeInventory.find(p => p.barcode === val || p.id === val);
+        if(matchedItem) {
+          addItemToCart(matchedItem);
+          e.target.value = "";
+        }
+      }
+    }
+
+    function searchByNameMetrics() {
+      const q = document.getElementById("manual-name-search").value.toLowerCase();
+      const resDiv = document.getElementById("dropdown-results");
+      if(!q) { resDiv.style.display = "none"; return; }
+      let filtered = activeInventory.filter(p => p.name.toLowerCase().includes(q));
+      if(filtered.length > 0) {
+        resDiv.style.display = "block";
+        resDiv.innerHTML = filtered.map(p => `<div class="dropdown-item" onclick="selectProductDirectly('${p.id}')">${p.name} - ${activeConfig.currency || 'PKR'} ${p.sellingPrice}</div>`).join('');
+      } else {
+        resDiv.style.display = "none";
+      }
+    }
+
+    function selectProductDirectly(id) {
+      const matched = activeInventory.find(p => p.id === id);
+      if(matched) addItemToCart(matched);
+      document.getElementById("manual-name-search").value = "";
+      document.getElementById("dropdown-results").style.display = "none";
+    }
+
+    function addItemToCart(p) {
+      const existing = currentCart.find(i => i.id === p.id);
+      if(existing) { existing.qty++; } 
+      else { currentCart.push({ id: p.id, name: p.name, price: p.sellingPrice, qty: 1, discount: 0 }); }
+      renderCartTable();
+    }
+
+    function renderCartTable() {
+      const tbody = document.getElementById("cart-tbody"); tbody.innerHTML = "";
+      let gross = 0, disc = 0, net = 0;
+      currentCart.forEach((item, index) => {
+        let lineTotal = (item.price * item.qty) - item.discount;
+        gross += (item.price * item.qty); disc += Number(item.discount); net += lineTotal;
+        tbody.innerHTML += `<tr>
+          <td><strong>${item.name}</strong><br><small style="color:#6c757d;">${item.id}</small></td>
+          <td>${item.price}</td>
+          <td><input type="number" class="form-control" value="${item.qty}" style="width:65px; margin:0; padding:4px;" onchange="updateCartQty(${index}, this.value)"></td>
+          <td><input type="number" class="form-control" value="${item.discount}" style="width:85px; margin:0; padding:4px;" onchange="updateCartDisc(${index}, this.value)"></td>
+          <td style="font-weight:bold; color:var(--primary);">${lineTotal.toFixed(2)}</td>
+        </tr>`;
+      });
+      document.getElementById("sum-gross").innerText = gross.toFixed(2);
+      document.getElementById("sum-disc").innerText = disc.toFixed(2);
+      document.getElementById("sum-net").innerText = net.toFixed(2);
+    }
+
+    function updateCartQty(idx, val) { currentCart[idx].qty = Number(val); renderCartTable(); }
+    function updateCartDisc(idx, val) { currentCart[idx].discount = Number(val); renderCartTable(); }
+
+    function processCheckoutInvoice() {
+      if(currentCart.length === 0) return;
+      const payload = { customer: document.getElementById("cart-customer").value, items: currentCart, grandTotal: Number(document.getElementById("sum-net").innerText) };
+      
+      fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "recordSale", data: payload }) })
+      .then(r=>r.json()).then(res => {
+         if(res.success) {
+           // Mapping configuration data array to raw node print frame
+           document.getElementById("pr-shop-name").innerText = activeConfig.shop_name || "The Lilly Shop";
+           document.getElementById("pr-shop-location").innerText = (activeConfig.shop_city || "Kot Addu") + " Branch Operations";
+           document.getElementById("pr-shop-phone").innerText = "Helpline Contact: " + (activeConfig.shop_phone || "");
+           document.getElementById("pr-invoice-id").innerText = "Invoice ID: " + res.invoiceId;
+           document.getElementById("pr-datetime").innerText = "Timestamp: " + new Date().toLocaleString();
+           
+           const prTbody = document.getElementById("pr-tbody"); prTbody.innerHTML = "";
+           currentCart.forEach(i => {
+             prTbody.innerHTML += `<tr><td>${i.name}</td><td>${i.qty}</td><td>${i.discount}</td><td>${((i.price*i.qty)-i.discount).toFixed(2)}</td></tr>`;
+           });
+           document.getElementById("pr-net-payable").innerText = (activeConfig.currency || "PKR") + " " + payload.grandTotal.toFixed(2);
+           
+           // Triggering internal OS window mapping thermal print matrix execution
+           window.print();
+           currentCart = []; renderCartTable();
+           document.getElementById("cart-customer").value = "Walk-In General Customer";
+         }
+      });
+    }
+  </script>
+</body>
+</html>
