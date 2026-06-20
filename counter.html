@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -89,6 +88,7 @@
       .footer-branding { text-align: center; font-size: 8px; font-weight: bold; margin-top: 6mm; border-top: 1px dashed #000000; padding-top: 3mm; }
     }
     
+    /* Professional Luxury Transaction Bill Modal Design */
     .modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 34, 26, 0.7); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 2000; animation: fadeIn 0.25s ease-out; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     .modal-content { background: var(--white); border-radius: 16px; padding: 2rem; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.25); border: 1px solid var(--gray-border); position: relative; }
@@ -97,6 +97,7 @@
     .modal-close { cursor: pointer; font-size: 1.35rem; color: #a0aec0; transition: color 0.2s; }
     .modal-close:hover { color: var(--danger); }
     
+    /* Luxury Receipt Dynamic Container */
     .receipt-container { background: var(--gray-light); border-radius: 12px; padding: 1.5rem; border: 1px dashed #cbd5e1; font-family: var(--font-ui); color: var(--charcoal); }
     .receipt-container h3 { font-family: var(--font-brand); color: var(--primary); font-size: 1.6rem; text-align: center; margin-bottom: 0.25rem; letter-spacing: 0.5px; }
     .receipt-meta-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; margin-top: 1rem; font-size: 0.85rem; color: #4a5568; background: var(--white); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--gray-border); }
@@ -278,7 +279,7 @@
       document.querySelectorAll(".view-pane").forEach(p => p.classList.remove("active"));
       document.querySelectorAll(".nav-item").forEach(i => i.classList.remove("active"));
       document.getElementById("view-" + viewId).classList.add("active");
-      if (event && event.currentTarget) event.currentTarget.classList.add("active");
+      event.currentTarget.classList.add("active");
     }
 
     function cloudPost(action, data = {}, extraParams = {}) {
@@ -287,25 +288,9 @@
         mode: "cors",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({ action, data, role: "counter", ...extraParams })
-      })
-      .then(res => {
-        if (!res.ok) throw new Error("Network status error");
-        return res.text(); // JSON directly parse karne ke bajaye clean string readable text capture kiya
-      })
-      .then(text => {
-        try {
-          return JSON.parse(text);
-        } catch(e) {
-          // Agar response string/html wrap layout mix ho to standard backup object return karega
-          if(text.includes("success")) {
-             return { success: true, message: "Transaction completed successfully." };
-          }
-          throw new Error("Malformed backend return segment");
-        }
-      })
-      .catch(err => {
+      }).then(res => res.json()).catch(err => {
         showLoader(false);
-        showToast("Synchronizer response layout offline link.", "error");
+        showToast("Cloud Synchronizer matrix link offline.", "error");
         throw err;
       });
     }
@@ -315,12 +300,10 @@
       Promise.all([cloudPost("getSettings"), cloudPost("getInventory"), cloudPost("getSalesHistory")])
       .then(([settings, inv, sales]) => {
         showLoader(false);
-        if(settings) activeSettings = settings;
-        if(inv) localInventory = inv;
-        if(sales) localSales = sales;
-        document.getElementById("shop-name-banner").innerText = (activeSettings.shop_name || "The Lilly Shop") + " (Counter Mode)";
+        activeSettings = settings; localInventory = inv; localSales = sales;
+        document.getElementById("shop-name-banner").innerText = (settings.shop_name || "The Lilly Shop") + " (Counter Mode)";
         renderCatalog(); renderHistory();
-      }).catch(() => showLoader(false));
+      });
     }
 
     function renderCatalog() {
@@ -334,7 +317,7 @@
         card.innerHTML = `
           <h4>${item.name}</h4>
           <span class="stock-tag">Stock: ${item.quantity} ${item.unit}</span>
-          <span class="price-tag">${activeSettings.currency || 'PKR'} ${Number(item.sellingPrice || item.price || 0).toFixed(2)}</span>
+          <span class="price-tag">${activeSettings.currency || 'PKR'} ${Number(item.sellingPrice).toFixed(2)}</span>
         `;
         container.appendChild(card);
       });
@@ -367,14 +350,13 @@
     function addToBasket(id) {
       const product = localInventory.find(p => String(p.id) === String(id));
       if(!product) return;
-      const uPrice = Number(product.sellingPrice || product.price || 0);
       if(activeBasket[id]) {
         if(activeBasket[id].qty >= Number(product.quantity)) {
           showToast("Maximum available stock boundary reached.", "error"); return;
         }
         activeBasket[id].qty++;
       } else {
-        activeBasket[id] = { id: product.id, name: product.name, barcode: product.barcode, sellingPrice: uPrice, qty: 1, discount: 0 };
+        activeBasket[id] = { id: product.id, name: product.name, barcode: product.barcode, sellingPrice: Number(product.sellingPrice), qty: 1, discount: 0 };
       }
       renderBasket();
     }
@@ -462,23 +444,14 @@
       showLoader(true);
       cloudPost("recordSale", payload).then(res => {
         showLoader(false);
-        if(res && res.success) {
-          showToast(res.message || "Sale catalog locked successfully.");
+        if(res.success) {
+          showToast(res.message);
           generateBillReceipt(res.invoiceId || "INV-"+Date.now(), payload);
           activeBasket = {}; document.getElementById("pos-customer-name").value = "";
           fetchCoreData();
         } else {
-          showToast((res && res.message) ? res.message : "Sync parsing execution done.");
-          generateBillReceipt("INV-"+Date.now(), payload);
-          activeBasket = {}; document.getElementById("pos-customer-name").value = "";
-          fetchCoreData();
+          showToast(res.message, "error");
         }
-      }).catch(() => {
-         showLoader(false);
-         // Safe backup execution if syntax layout hits offline fallback simulation
-         generateBillReceipt("INV-"+Date.now(), payload);
-         activeBasket = {}; document.getElementById("pos-customer-name").value = "";
-         fetchCoreData();
       });
     }
 
@@ -488,14 +461,14 @@
       let gTotal = 0;
       
       payload.items.forEach(it => {
-        const lineTotal = (it.qty * (it.sellingPrice || it.price || 0)) - it.discount;
+        const lineTotal = (it.qty * (it.sellingPrice || it.price)) - it.discount;
         gTotal += lineTotal;
         
         itemsHtml += `
           <div class="receipt-item-row">
             <div>
               <div style="font-weight: 600; color: var(--primary);">${it.name}</div>
-              <div class="receipt-item-details">${it.qty} x ${(it.sellingPrice || it.price || 0).toFixed(2)} [Disc: PKR ${it.discount}]</div>
+              <div class="receipt-item-details">${it.qty} x ${(it.sellingPrice || it.price).toFixed(2)} [Disc: PKR ${it.discount}]</div>
             </div>
             <div class="receipt-item-total">PKR ${lineTotal.toFixed(2)}</div>
           </div>
@@ -552,14 +525,14 @@
     function renderHistory() {
       const tbody = document.getElementById("history-table-body"); tbody.innerHTML = "";
       localSales.forEach(s => {
-        let itemsSummary = (s.items || []).map(i => `${i.name} (${i.qty})`).join(", ");
+        let itemsSummary = s.items.map(i => `${i.name} (${i.qty})`).join(", ");
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td class="mono font-weight-bold" style="color:var(--primary);">${s.saleId}</td>
           <td>${s.date} <span style="font-size:0.8rem; color:#6c757d;">${s.time}</span></td>
           <td>${s.customer}</td>
           <td style="max-width:300px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${itemsSummary}</td>
-          <td class="mono font-weight-bold">${activeSettings.currency || 'PKR'} ${Number(s.grandTotal || 0).toFixed(2)}</td>
+          <td class="mono font-weight-bold">${activeSettings.currency || 'PKR'} ${Number(s.grandTotal).toFixed(2)}</td>
           <td><button class="btn btn-sm" onclick="reprintInvoice('${s.saleId}')"><i class="fa-solid fa-print"></i> Receipt</button></td>
         `;
         tbody.appendChild(tr);
